@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1",
+    "status": true,
+    "title": "Peluche Carpincho",
+    "description": "Tierno peluche de carpincho",
+    "price": 15000,
+    "code": "P001",
+    "stock": 10,
+    "category": "peluches",
+    "thumbnails": [
+      "img1.jpg"
+    ]
+  }
+]
