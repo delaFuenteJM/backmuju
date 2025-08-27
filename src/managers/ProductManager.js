@@ -1,72 +1,57 @@
-import fs from 'fs/promises';
+import { promises as fs } from "fs";
 
-export default class ProductManager {
+class ProductsManager {
   constructor(path) {
     this.path = path;
   }
 
-  async getProducts() {
-    try {
-      const data = await fs.readFile(this.path, 'utf-8');
-      return JSON.parse(data);
-    } catch (error) {
-      return [];
-    }
+  async #getNextId() {
+    const products = await this.getProducts();
+    const maxId = products.length > 0 ? Math.max(...products.map(p => p.id)) : 0;
+    return maxId + 1;
   }
 
-  async saveProducts(products) {
-    await fs.writeFile(this.path, JSON.stringify(products, null, 2));
+  async getProducts() {
+    const data = await fs.readFile(this.path, "utf-8");
+    return JSON.parse(data);
+  }
+
+  async getProductById(id) {
+    const products = await this.getProducts();
+    return products.find(p => p.id === parseInt(id)); 
   }
 
   async addProduct(product) {
     const products = await this.getProducts();
 
-    const newId = products.length > 0 ? parseInt(products[products.length - 1].id) + 1 : 1;
+    if (!product.title || !product.price) {
+      throw new Error("Título y precio son obligatorios");
+    }
 
-    const newProduct = {
-      id: newId.toString(),
-      status: true,
-      ...product
-    };
-
+    const newProduct = { id: await this.#getNextId(), ...product };
     products.push(newProduct);
-    await this.saveProducts(products);
+    await fs.writeFile(this.path, JSON.stringify(products, null, 2));
     return newProduct;
   }
 
-  async getProductById(id) {
+  async updateProduct(id, updatedFields) {
     const products = await this.getProducts();
-    return products.find(p => p.id == id);
-  }
+    const index = products.findIndex(p => p.id === parseInt(id));
+    if (index === -1) return null;
 
-  async updateProduct(id, changes) {
-    const products = await this.getProducts();
-    const index = products.findIndex(p => p.id == id);
-
-    if (index === -1) {
-      return { error: 'Producto no encontrado' };
-    }
-
-    delete changes.id;
-
-    products[index] = {
-      ...products[index],
-      ...changes
-    };
-
-    await this.saveProducts(products);
+    products[index] = { ...products[index], ...updatedFields };
+    await fs.writeFile(this.path, JSON.stringify(products, null, 2));
     return products[index];
   }
 
   async deleteProduct(id) {
     const products = await this.getProducts();
-    const filtered = products.filter(p => p.id != id);
+    const filtered = products.filter(p => p.id !== parseInt(id));
+    if (filtered.length === products.length) return false;
 
-    if (products.length === filtered.length) {
-      return { error: 'Producto no encontrado' };
-    }
-
-    await this.saveProducts(filtered);
-    return { message: 'Producto eliminado' };
+    await fs.writeFile(this.path, JSON.stringify(filtered, null, 2));
+    return true;
   }
 }
+
+export default ProductsManager;

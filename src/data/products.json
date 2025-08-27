@@ -11,5 +11,32 @@
     "thumbnails": [
       "img1.jpg"
     ]
+  },
+  {
+    "id": 2,
+    "title": "Auto Colapinto",
+    "description": "Juguete coleccionable de la F1",
+    "price": "10000",
+    "code": "F1-0001",
+    "stock": "8",
+    "category": "coleccionables"
+  },
+  {
+    "id": 3,
+    "title": "Vinilo jazz",
+    "description": "Grandes éxitos de jazz",
+    "price": "6000",
+    "code": "VJ-00001",
+    "stock": "5",
+    "category": "Musica"
+  },
+  {
+    "id": 4,
+    "title": "Aperturas de Ajedrez",
+    "description": "Libro recopilatoriode grandes aperturas de ajedrez.",
+    "price": "40000",
+    "code": "CHESS-00001",
+    "stock": "20",
+    "category": "Libros"
   }
 ]

@@ -1,71 +1,46 @@
-import fs from 'fs/promises';
+import { promises as fs } from "fs";
+import { v4 as uuidv4 } from "uuid";
 
-export default class CartManager {
+class CartsManager {
   constructor(path) {
     this.path = path;
   }
 
-  async #readFile() {
-    try {
-      const data = await fs.readFile(this.path, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async #writeFile(data) {
-    await fs.writeFile(this.path, JSON.stringify(data, null, 2));
+  async getCarts() {
+    const data = await fs.readFile(this.path, "utf-8");
+    return JSON.parse(data);
   }
 
   async createCart() {
-    const carts = await this.#readFile();
-
-    let newId = 1;
-    if (carts.length > 0) {
-      const lastCartId = parseInt(carts[carts.length - 1].id);
-      if (!isNaN(lastCartId)) {
-        newId = lastCartId + 1;
-      }
-    }
-
-    const newCart = {
-      id: newId.toString(),
-      products: []
-    };
-
+    const carts = await this.getCarts();
+    const newCart = { id: uuidv4(), products: [] };
     carts.push(newCart);
-    await this.#writeFile(carts);
+    await fs.writeFile(this.path, JSON.stringify(carts, null, 2));
     return newCart;
   }
 
   async getCartById(id) {
-    const carts = await this.#readFile();
-    return carts.find(cart => cart.id == id);
+    const carts = await this.getCarts();
+    return carts.find((c) => c.id === id);
   }
 
-  async addProductToCart(cid, pid) {
-    const carts = await this.#readFile();
+  async addProductToCart(cartId, productId) {
+    const carts = await this.getCarts();
+    const cart = carts.find((c) => c.id === cartId);
+    if (!cart) return null;
 
-    const cartIndex = carts.findIndex(c => c.id == cid);
-    if (cartIndex === -1) {
-      return { error: 'Carrito no encontrado' };
-    }
-
-    const cart = carts[cartIndex];
-
-    const existingProduct = cart.products.find(p => p.product == pid);
-
-    if (existingProduct) {
-      existingProduct.quantity++;
+    const productIndex = cart.products.findIndex(
+      (p) => p.product === productId
+    );
+    if (productIndex === -1) {
+      cart.products.push({ product: productId, quantity: 1 });
     } else {
-      cart.products.push({
-        product: pid,
-        quantity: 1
-      });
+      cart.products[productIndex].quantity++;
     }
 
-    await this.#writeFile(carts);
+    await fs.writeFile(this.path, JSON.stringify(carts, null, 2));
     return cart;
   }
 }
+
+export default CartsManager;
