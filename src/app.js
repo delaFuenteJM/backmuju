@@ -3,10 +3,11 @@ import { Server } from "socket.io";
 import { engine } from "express-handlebars";
 import path from "path";
 import { fileURLToPath } from "url";
+import mongoose from "mongoose";
 import productsRouter from "./routes/products.router.js";
 import cartsRouter from "./routes/carts.router.js";
 import viewsRouter from "./routes/views.router.js";
-import ProductsManager from "./managers/ProductManager.js"; 
+import product from "./models/product.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,14 @@ const PORT = 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+mongoose.connect("mongodb+srv://delajuanma_db_user:55NKuPFziIp495WI@cluster0.l2mcs51.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+.then(()=>{
+  console.log("Conectado a la base de datos MongoDB");
+})
+.catch((error)=>{
+  console.error("Error al conectar a la base de datos MongoDB:", error);
+});
+
 app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
 app.set("views", path.join(__dirname, "views"));
@@ -24,7 +33,6 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", viewsRouter);
-
 app.use("/api/products", productsRouter);
 app.use("/api/carts", cartsRouter);
 
@@ -33,17 +41,14 @@ const httpServer = app.listen(PORT, () => {
 });
 
 const io = new Server(httpServer);
-const productsManager = new ProductsManager(
-  path.join(__dirname, "data/products.json")
-);
 
 io.on("connection", (socket) => {
   console.log("Nuevo cliente conectado");
 
-  socket.on("addProduct", async (newProduct) => {
+socket.on("addProduct", async (newProduct) => {
     try {
-      await productsManager.addProduct(newProduct);
-      const updatedProducts = await productsManager.getProducts();
+      await product.create(newProduct);
+      const updatedProducts = await product.find();
       io.emit("productsUpdated", updatedProducts);
     } catch (error) {
       console.error("Error al agregar producto:", error);
@@ -52,8 +57,8 @@ io.on("connection", (socket) => {
 
   socket.on("deleteProduct", async (productId) => {
     try {
-      await productsManager.deleteProduct(productId);
-      const updatedProducts = await productsManager.getProducts();
+      await product.findByIdAndDelete(productId);
+      const updatedProducts = await product.find();
       io.emit("productsUpdated", updatedProducts);
     } catch (error) {
       console.error("Error al eliminar producto:", error);

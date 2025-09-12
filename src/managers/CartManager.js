@@ -1,9 +1,20 @@
 import { promises as fs } from "fs";
-import { v4 as uuidv4 } from "uuid";
 
 class CartsManager {
   constructor(path) {
     this.path = path;
+  }
+
+  // Nuevo método privado para obtener el próximo ID
+  async #getNextId() {
+    try {
+      const carts = await this.getCarts();
+      const maxId = carts.length > 0 ? Math.max(...carts.map(c => c.id)) : 0;
+      return maxId + 1;
+    } catch (error) {
+      // Si el archivo no existe, el primer ID será 1
+      return 1;
+    }
   }
 
   async getCarts() {
@@ -13,7 +24,8 @@ class CartsManager {
 
   async createCart() {
     const carts = await this.getCarts();
-    const newCart = { id: uuidv4(), products: [] };
+    // Usar el nuevo método para generar el ID secuencial
+    const newCart = { id: await this.#getNextId(), products: [] };
     carts.push(newCart);
     await fs.writeFile(this.path, JSON.stringify(carts, null, 2));
     return newCart;
@@ -21,19 +33,19 @@ class CartsManager {
 
   async getCartById(id) {
     const carts = await this.getCarts();
-    return carts.find((c) => c.id === id);
+    return carts.find((c) => c.id === parseInt(id));
   }
 
   async addProductToCart(cartId, productId) {
     const carts = await this.getCarts();
-    const cart = carts.find((c) => c.id === cartId);
+    const cart = carts.find((c) => c.id === parseInt(cartId));
     if (!cart) return null;
 
     const productIndex = cart.products.findIndex(
-      (p) => p.product === productId
+      (p) => p.product === parseInt(productId)
     );
     if (productIndex === -1) {
-      cart.products.push({ product: productId, quantity: 1 });
+      cart.products.push({ product: parseInt(productId), quantity: 1 });
     } else {
       cart.products[productIndex].quantity++;
     }

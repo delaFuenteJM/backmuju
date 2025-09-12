@@ -1,31 +1,69 @@
 import { Router } from "express";
-import ProductsManager from "../managers/ProductManager.js";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import Product from "../models/product.js";
+import Cart from "../models/cart.js";
 
 const router = Router();
-const productsManager = new ProductsManager(
-  path.join(__dirname, "../data/products.json")
-);
 
 router.get("/", async (req, res) => {
   try {
-    const products = await productsManager.getProducts();
-    res.render("home", { products });
+    const { limit = 10, page = 1, sort, query } = req.query;
+
+    const filter = query ? { category: query } : {};
+    const sortOptions = sort ? { price: sort === "asc" ? 1 : -1 } : {};
+
+    const result = await Product.paginate(filter, {
+      limit: parseInt(limit),
+      page: parseInt(page),
+      sort: sortOptions,
+      lean: true,
+    });
+
+    res.render("home", {
+      products: result.docs,
+      hasPrevPage: result.hasPrevPage,
+      hasNextPage: result.hasNextPage,
+      prevPage: result.prevPage,
+      nextPage: result.nextPage,
+      page: result.page,
+      totalPages: result.totalPages,
+    });
   } catch (error) {
-    res.status(500).send("Error al cargar los productos");
+    res.status(500).send("Error al cargar los productos.");
   }
 });
 
 router.get("/realtimeproducts", async (req, res) => {
   try {
-    const products = await productsManager.getProducts();
+    const products = await Product.find().lean();
     res.render("realTimeProducts", { products });
   } catch (error) {
-    res.status(500).send("Error al cargar los productos en tiempo real");
+    res.status(500).send("Error al cargar los productos en tiempo real.");
+  }
+});
+
+router.get("/carts/:cid", async (req, res) => {
+  try {
+    const cart = await Cart.findById(req.params.cid).populate("products.product").lean();
+
+    if (!cart) {
+      return res.status(404).send("Carrito no encontrado.");
+    }
+
+    res.render("cart", { cart: cart });
+  } catch (error) {
+    res.status(500).send("Error al cargar el carrito.");
+  }
+});
+
+router.get("/products/:pid", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.pid).lean();
+    if (!product) {
+      return res.status(404).send("Producto no encontrado.");
+    }
+    res.render("productDetails", { product: product });
+  } catch (error) {
+    res.status(500).send("Error al cargar los detalles del producto.");
   }
 });
 

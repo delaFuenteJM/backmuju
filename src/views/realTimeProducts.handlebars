@@ -17,11 +17,11 @@
     <h2>Lista de Productos</h2>
     <ul id="productList">
         {{#each products}}
-        <li class="productItem" data-id="{{this.id}}">
+        <li class="productItem" data-id="{{this._id}}">
             <h3>{{this.title}}</h3>
             <p>Precio: ${{this.price}}</p>
-            <p>ID: {{this.id}}</p>
-            <button class="deleteProduct" data-id="{{this.id}}">Eliminar</button>
+            <p>ID: {{this._id}}</p>
+            <button class="deleteProduct" data-id="{{this_id}}">Eliminar</button>
         </li>
         {{/each}}
     </ul>
