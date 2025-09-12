@@ -5,14 +5,14 @@ class CartsManager {
     this.path = path;
   }
 
-  // Nuevo método privado para obtener el próximo ID
+
   async #getNextId() {
     try {
       const carts = await this.getCarts();
       const maxId = carts.length > 0 ? Math.max(...carts.map(c => c.id)) : 0;
       return maxId + 1;
     } catch (error) {
-      // Si el archivo no existe, el primer ID será 1
+
       return 1;
     }
   }
@@ -24,7 +24,6 @@ class CartsManager {
 
   async createCart() {
     const carts = await this.getCarts();
-    // Usar el nuevo método para generar el ID secuencial
     const newCart = { id: await this.#getNextId(), products: [] };
     carts.push(newCart);
     await fs.writeFile(this.path, JSON.stringify(carts, null, 2));
