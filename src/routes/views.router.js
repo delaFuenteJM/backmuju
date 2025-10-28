@@ -1,25 +1,39 @@
 import { Router } from "express";
-import Product from "../models/product.js";
-import Cart from "../models/cart.js";
+import ProductsMongoManager from "../managers/mongo/productsMongoManager.js";
+import CartsMongoManager from "../managers/mongo/cartsMongoManager.js";
+import { privateAccess, publicAccess } from '../middlewares/auth.js'; 
 
 const router = Router();
+const productsManager = new ProductsMongoManager();
+const cartsManager = new CartsMongoManager();
 
-router.get("/", async (req, res) => {
+router.get('/login', publicAccess, (req, res) => {
+    res.render('login', { title: 'Login' });
+});
+
+router.get('/register', publicAccess, (req, res) => {
+    res.render('register', { title: 'Registro' });
+});
+
+router.get("/", privateAccess, async (req, res) => {
   try {
-    const { limit = 10, page = 1, sort, query } = req.query;
+    const { limit, page, sort, category: query } = req.query; 
 
-    const filter = query ? { category: query } : {};
-    const sortOptions = sort ? { price: sort === "asc" ? 1 : -1 } : {};
-
-    const result = await Product.paginate(filter, {
-      limit: parseInt(limit),
-      page: parseInt(page),
-      sort: sortOptions,
-      lean: true,
+    const result = await productsManager.getProducts({
+        limit,
+        page,
+        sort,
+        category: query,
     });
+    
+    const userData = {
+        first_name: req.user.first_name,
+        role: req.user.role,
+    };
 
-    res.render("home", {
+    res.render("home", { 
       products: result.docs,
+      user: userData,
       hasPrevPage: result.hasPrevPage,
       hasNextPage: result.hasNextPage,
       prevPage: result.prevPage,
@@ -28,42 +42,19 @@ router.get("/", async (req, res) => {
       totalPages: result.totalPages,
     });
   } catch (error) {
-    res.status(500).send("Error al cargar los productos.");
-  }
-});
-
-router.get("/realtimeproducts", async (req, res) => {
-  try {
-    const products = await Product.find().lean();
-    res.render("realTimeProducts", { products });
-  } catch (error) {
-    res.status(500).send("Error al cargar los productos en tiempo real.");
-  }
-});
-
-router.get("/carts/:cid", async (req, res) => {
-  try {
-    const cart = await Cart.findById(req.params.cid).populate("products.product").lean();
-
-    if (!cart) {
-      return res.status(404).send("Carrito no encontrado.");
-    }
-
-    res.render("cart", { cart: cart });
-  } catch (error) {
-    res.status(500).send("Error al cargar el carrito.");
+    res.status(500).send("Error al cargar los productos: " + error.message);
   }
 });
 
 router.get("/products/:pid", async (req, res) => {
   try {
-    const product = await Product.findById(req.params.pid).lean();
+    const product = await productsManager.getProductById(req.params.pid);
     if (!product) {
       return res.status(404).send("Producto no encontrado.");
     }
     res.render("productDetails", { product: product });
   } catch (error) {
-    res.status(500).send("Error al cargar los detalles del producto.");
+    res.status(500).send("Error al cargar los detalles del producto: " + error.message);
   }
 });
 

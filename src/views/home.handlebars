@@ -1,4 +1,14 @@
 <div>
+{{#if user}}
+        <div style="padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc; margin-bottom: 20px;">
+            <h1>Bienvenido, {{user.first_name}}!</h1>
+            <p>Tu rol es: <strong>{{user.role}}</strong></p>
+            <p>
+                <a href="/api/sessions/logout" style="color: blue;">Cerrar sesión</a>
+            </p>
+        </div>
+    {{/if}}
+
     <h1>Lista de Productos</h1>
 
     <ul>
