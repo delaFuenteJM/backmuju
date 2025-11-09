@@ -1,42 +1,48 @@
 <div>
-{{#if user}}
-        <div style="padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc; margin-bottom: 20px;">
-            <h1>Bienvenido, {{user.first_name}}!</h1>
-            <p>Tu rol es: <strong>{{user.role}}</strong></p>
-            <p>
-                <a href="/api/sessions/logout" style="color: blue;">Cerrar sesión</a>
-            </p>
-        </div>
-    {{/if}}
-
-    <h1>Lista de Productos</h1>
-
-    <ul>
-        {{#each products}}
-        <li>
-
-            {{#if this.thumbnails.length}}
-                <img src="{{this.thumbnails.[0]}}" alt="Imagen de {{this.title}}" style="max-width: 200px;">
-            {{else}}
-                <p>Imagen no disponible</p>
-            {{/if}}
-            <h2>{{this.title}}</h2>
-            <p>Precio: ${{this.price}}</p>
-            <p>Categoría: {{this.category}}</p>
-            <p>ID: {{this._id}}</p>
-            <a href="/products/{{this._id}}">Ver detalles</a>
-            <button class="add-to-cart" data-id="{{this._id}}">Agregar al carrito</button>
-        </li>
-        {{/each}}
-    </ul>
-
-    <div>
-        {{#if hasPrevPage}}
-        <a href="?page={{prevPage}}&limit={{products.length}}">Página anterior</a>
-        {{/if}}
-        <span>Página {{page}} de {{totalPages}}</span>
-        {{#if hasNextPage}}
-        <a href="?page={{nextPage}}&limit={{products.length}}">Página siguiente</a>
-        {{/if}}
+  {{#if user}}
+    <div
+      style="padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc; margin-bottom: 20px;"
+    >
+      <h1>Bienvenido, {{user.first_name}}!</h1>
+      <p>Tu rol es: <strong>{{user.role}}</strong></p>
+      <button id="logout-button">Cerrar Sesión</button>
     </div>
+  {{/if}}
+
+  <h1>Lista de Productos</h1>
+
+  <ul>
+    {{#each products}}
+      <li>
+
+        {{#if this.thumbnails.length}}
+          <img
+            src="{{this.thumbnails.0}}"
+            alt="Imagen de {{this.title}}"
+            style="max-width: 200px;"
+          />
+        {{else}}
+          <p>Imagen no disponible</p>
+        {{/if}}
+        <h2>{{this.title}}</h2>
+        <p>Precio: ${{this.price}}</p>
+        <p>Categoría: {{this.category}}</p>
+        <p>ID: {{this._id}}</p>
+        <a href="/products/{{this._id}}">Ver detalles</a>
+        <button class="add-to-cart" data-id="{{this._id}}">Agregar al carrito</button>
+      </li>
+    {{/each}}
+  </ul>
+
+  <div>
+    {{#if hasPrevPage}}
+      <a href="?page={{prevPage}}&limit={{products.length}}">Página anterior</a>
+    {{/if}}
+    <span>Página {{page}} de {{totalPages}}</span>
+    {{#if hasNextPage}}
+      <a href="?page={{nextPage}}&limit={{products.length}}">Página siguiente</a>
+    {{/if}}
+  </div>
 </div>
+
+<script src="/js/sessions.js"></script>

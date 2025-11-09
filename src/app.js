@@ -30,13 +30,14 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 initializePassport();
 app.use(passport.initialize());
 
-mongoose.connect(process.env.DATABASE_URL)
-.then(()=>{
-  console.log("Conectado a la base de datos MongoDB");
-})
-.catch((error)=>{
-  console.error("Error al conectar a la base de datos MongoDB:", error);
-});
+mongoose
+  .connect(process.env.DATABASE_URL)
+  .then(() => {
+    console.log("Conectado a la base de datos MongoDB");
+  })
+  .catch((error) => {
+    console.error("Error al conectar a la base de datos MongoDB:", error);
+  });
 
 app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
@@ -58,7 +59,7 @@ const io = new Server(httpServer);
 io.on("connection", (socket) => {
   console.log("Nuevo cliente conectado");
 
-socket.on("addProduct", async (newProduct) => {
+  socket.on("addProduct", async (newProduct) => {
     try {
       await product.create(newProduct);
       const updatedProducts = await product.find();

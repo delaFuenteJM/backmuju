@@ -1,37 +1,37 @@
 import { Router } from "express";
 import ProductsMongoManager from "../managers/mongo/productsMongoManager.js";
 import CartsMongoManager from "../managers/mongo/cartsMongoManager.js";
-import { privateAccess, publicAccess } from '../middlewares/auth.js'; 
+import { privateAccess, publicAccess } from "../middlewares/auth.js";
 
 const router = Router();
 const productsManager = new ProductsMongoManager();
 const cartsManager = new CartsMongoManager();
 
-router.get('/login', publicAccess, (req, res) => {
-    res.render('login', { title: 'Login' });
+router.get("/login", publicAccess, (req, res) => {
+  res.render("login", { title: "Login" });
 });
 
-router.get('/register', publicAccess, (req, res) => {
-    res.render('register', { title: 'Registro' });
+router.get("/register", publicAccess, (req, res) => {
+  res.render("register", { title: "Registro" });
 });
 
 router.get("/", privateAccess, async (req, res) => {
   try {
-    const { limit, page, sort, category: query } = req.query; 
+    const { limit, page, sort, category: query } = req.query;
 
     const result = await productsManager.getProducts({
-        limit,
-        page,
-        sort,
-        category: query,
+      limit,
+      page,
+      sort,
+      category: query,
     });
-    
+
     const userData = {
-        first_name: req.user.first_name,
-        role: req.user.role,
+      first_name: req.user.first_name,
+      role: req.user.role,
     };
 
-    res.render("home", { 
+    res.render("home", {
       products: result.docs,
       user: userData,
       hasPrevPage: result.hasPrevPage,
@@ -46,6 +46,10 @@ router.get("/", privateAccess, async (req, res) => {
   }
 });
 
+router.get("/products", (req, res) => {
+  res.redirect("/");
+});
+
 router.get("/products/:pid", async (req, res) => {
   try {
     const product = await productsManager.getProductById(req.params.pid);
@@ -54,7 +58,9 @@ router.get("/products/:pid", async (req, res) => {
     }
     res.render("productDetails", { product: product });
   } catch (error) {
-    res.status(500).send("Error al cargar los detalles del producto: " + error.message);
+    res
+      .status(500)
+      .send("Error al cargar los detalles del producto: " + error.message);
   }
 });
 
