@@ -84,6 +84,3 @@ Ejemplo:
 
 ------------------------------------------------------------------------
 
-# Licencia
-
-Proyecto educativo presentado como entrega final del curso.
