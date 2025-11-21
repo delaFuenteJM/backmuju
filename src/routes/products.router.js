@@ -1,14 +1,14 @@
 import { Router } from "express";
-import ProductsMongoManager from "../managers/mongo/productsMongoManager.js";
+import ProductRepository from "../repositories/productRepository.js";
+import { authMiddleware, passportCall } from "../middlewares/auth.js";
 
 const router = Router();
-const productsManager = new ProductsMongoManager();
+const productRepository = new ProductRepository();
 
 router.get("/", async (req, res) => {
   try {
     const { limit, page, sort, category } = req.query;
-
-    const result = await productsManager.getProducts({
+    const result = await productRepository.getProducts({
       limit,
       page,
       sort,
@@ -25,10 +25,10 @@ router.get("/", async (req, res) => {
       hasPrevPage: result.hasPrevPage,
       hasNextPage: result.hasNextPage,
       prevLink: result.hasPrevPage
-        ? `/api/products?page=${result.prevPage}&limit=${limit}`
+        ? `/api/products?page=${result.prevPage}&limit=${limit || 10}`
         : null,
       nextLink: result.hasNextPage
-        ? `/api/products?page=${result.nextPage}&limit=${limit}`
+        ? `/api/products?page=${result.nextPage}&limit=${limit || 10}`
         : null,
     });
   } catch (error) {
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
 
 router.get("/:pid", async (req, res) => {
   try {
-    const product = await productsManager.getProductById(req.params.pid);
+    const product = await productRepository.getProductById(req.params.pid);
     if (!product)
       return res.status(404).json({ error: "Producto no encontrado" });
     res.json(product);
@@ -51,44 +51,64 @@ router.get("/:pid", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
-  try {
-    const newProduct = await productsManager.addProduct(req.body);
-    res.status(201).json(newProduct);
-  } catch (error) {
-    res
-      .status(400)
-      .json({ error: "Error al crear producto", details: error.message });
+router.post(
+  "/",
+  passportCall("jwt"),
+  authMiddleware(["admin"]),
+  async (req, res) => {
+    try {
+      const newProduct = await productRepository.createProduct(req.body);
+      res.status(201).json(newProduct);
+    } catch (error) {
+      res
+        .status(400)
+        .json({ error: "Error al crear producto", details: error.message });
+    }
   }
-});
+);
 
-router.put("/:pid", async (req, res) => {
-  try {
-    const updatedProduct = await productsManager.updateProduct(
-      req.params.pid,
-      req.body
-    );
-    if (!updatedProduct)
-      return res.status(404).json({ error: "Producto no encontrado" });
-    res.json(updatedProduct);
-  } catch (error) {
-    res
-      .status(400)
-      .json({ error: "Error al actualizar producto", details: error.message });
+router.put(
+  "/:pid",
+  passportCall("jwt"),
+  authMiddleware(["admin"]),
+  async (req, res) => {
+    try {
+      const updatedProduct = await productRepository.updateProduct(
+        req.params.pid,
+        req.body
+      );
+      if (!updatedProduct)
+        return res.status(404).json({ error: "Producto no encontrado" });
+      res.json(updatedProduct);
+    } catch (error) {
+      res
+        .status(400)
+        .json({
+          error: "Error al actualizar producto",
+          details: error.message,
+        });
+    }
   }
-});
+);
 
-router.delete("/:pid", async (req, res) => {
-  try {
-    const deletedProduct = await productsManager.deleteProduct(req.params.pid);
-    if (!deletedProduct)
-      return res.status(404).json({ error: "Producto no encontrado" });
-    res.json({ message: "Producto eliminado" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al eliminar producto", details: error.message });
+router.delete(
+  "/:pid",
+  passportCall("jwt"),
+  authMiddleware(["admin"]),
+  async (req, res) => {
+    try {
+      const deletedProduct = await productRepository.deleteProduct(
+        req.params.pid
+      );
+      if (!deletedProduct)
+        return res.status(404).json({ error: "Producto no encontrado" });
+      res.json({ message: "Producto eliminado" });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ error: "Error al eliminar producto", details: error.message });
+    }
   }
-});
+);
 
 export default router;

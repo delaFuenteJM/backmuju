@@ -1,17 +1,18 @@
 import passport from "passport";
 import local from "passport-local";
 import jwt from "passport-jwt";
+import UserRepository from "../repositories/userRepository.js";
 import { createHash, isValidPassword } from "../utils/security.js";
 import User from "../models/user.js";
-import Cart from "../models/cart.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+
 const LocalStrategy = local.Strategy;
 const JWTStrategy = jwt.Strategy;
 const ExtractJWT = jwt.ExtractJwt;
 const JWT_SECRET = process.env.JWT_SECRET;
-
+const userRepository = new UserRepository();
 const initializePassport = () => {
   passport.use(
     "register",
@@ -21,13 +22,10 @@ const initializePassport = () => {
         const { first_name, last_name, age } = req.body;
 
         try {
-          let user = await User.findOne({ email: username });
-
+          let user = await userRepository.getByEmail(username);
           if (user) {
             return done(null, false, { message: "El usuario ya existe" });
           }
-
-          const newCart = await Cart.create({ products: [] });
 
           const newUser = {
             first_name,
@@ -35,18 +33,17 @@ const initializePassport = () => {
             email: username,
             age,
             password: createHash(password),
-            cart: newCart._id,
             role:
-              username === "adminCoder@coder.com" &&
+              username === "adminMuju@Muju.com" &&
               password === "adminPassword"
                 ? "admin"
                 : "user",
           };
 
-          let result = await User.create(newUser);
+          let result = await userRepository.register(newUser);
           return done(null, result);
         } catch (error) {
-          return done("Error al obtener el usuario: " + error);
+          return done("Error al registrar usuario: " + error);
         }
       }
     )
@@ -58,20 +55,17 @@ const initializePassport = () => {
       { usernameField: "email" },
       async (username, password, done) => {
         try {
-          let user = await User.findOne({ email: username });
-
+          let user = await userRepository.getByEmail(username);
           if (!user) {
             return done(null, false, {
               message: "Usuario y/o contraseña incorrectos",
             });
           }
-
           if (!isValidPassword(user, password)) {
             return done(null, false, {
               message: "Usuario y/o contraseña incorrectos",
             });
           }
-
           return done(null, user);
         } catch (error) {
           return done(error);
@@ -104,7 +98,7 @@ const initializePassport = () => {
   );
 
   passport.serializeUser((user, done) => {
-    done(null, user._id);
+    done(null, user._id || user.id);
   });
 
   passport.deserializeUser(async (id, done) => {

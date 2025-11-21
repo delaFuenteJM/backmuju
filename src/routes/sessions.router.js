@@ -2,8 +2,13 @@ import { Router } from "express";
 import passport from "passport";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/passport.config.js";
+import UserDTO from "../dto/userDto.js";
+import UserDao from "../dao/userDao.js";
+import { sendPasswordResetEmail } from "../utils/mailing.js";
+import { createHash, isValidPassword } from "../utils/security.js";
 
 const router = Router();
+const userDao = new UserDao();
 
 const generateToken = (user) => {
   const payload = {
@@ -33,12 +38,10 @@ router.post(
 );
 
 router.get("/register-fail", async (req, res) => {
-  res
-    .status(400)
-    .send({
-      status: "error",
-      message: "Fallo en el registro. Email ya en uso o datos inválidos.",
-    });
+  res.status(400).send({
+    status: "error",
+    message: "Fallo en el registro. Email ya en uso o datos inválidos.",
+  });
 });
 
 router.post(
@@ -61,12 +64,10 @@ router.post(
 );
 
 router.get("/login-fail", (req, res) => {
-  res
-    .status(401)
-    .send({
-      status: "error",
-      message: "Login fallido: credenciales incorrectas.",
-    });
+  res.status(401).send({
+    status: "error",
+    message: "Login fallido: credenciales incorrectas.",
+  });
 });
 
 router.post("/logout", (req, res) => {
@@ -80,8 +81,104 @@ router.get(
   "/current",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    res.send({ status: "success", user: req.user });
+    if (!req.user) {
+      return res
+        .status(401)
+        .send({ status: "error", message: "Token inválido o expirado." });
+    }
+    const userDto = new UserDTO(req.user);
+    res.send({ status: "success", payload: userDto });
   }
 );
+
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await userDao.getByEmail(email);
+
+    if (!user) {
+      return res
+        .status(200)
+        .send({
+          status: "success",
+          message: "Si el usuario existe, se ha enviado un correo.",
+        });
+    }
+    const resetToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
+    await sendPasswordResetEmail(email, resetToken);
+    res
+      .status(200)
+      .send({
+        status: "success",
+        message:
+          "Si el usuario existe, se ha enviado un correo para restablecer la contraseña.",
+      });
+  } catch (error) {
+    console.error("Error al solicitar restablecimiento:", error);
+    res
+      .status(500)
+      .send({ status: "error", message: "Error interno del servidor." });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res
+      .status(400)
+      .send({
+        status: "error",
+        message: "Faltan datos (token o nueva contraseña).",
+      });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { email } = decoded;
+
+    const user = await userDao.getByEmail(email);
+    if (!user) {
+      return res
+        .status(404)
+        .send({ status: "error", message: "Usuario no encontrado." });
+    }
+
+    if (isValidPassword(user, newPassword)) {
+      return res
+        .status(400)
+        .send({
+          status: "error",
+          message: "La nueva contraseña debe ser diferente a la anterior.",
+        });
+    }
+
+    const newHashedPassword = createHash(newPassword);
+    await userDao.updatePassword(user._id, newHashedPassword);
+    res
+      .status(200)
+      .send({
+        status: "success",
+        message: "Contraseña restablecida con éxito.",
+      });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res
+        .status(400)
+        .send({
+          status: "error",
+          message:
+            "El token de restablecimiento ha expirado. Solicite uno nuevo.",
+        });
+    }
+    console.error("Error en el restablecimiento de contraseña:", error);
+    res
+      .status(500)
+      .send({
+        status: "error",
+        message: "Error interno del servidor o token inválido.",
+      });
+  }
+});
 
 export default router;
